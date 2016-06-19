@@ -1,129 +1,166 @@
 
 var express  = require('express'),
-   mongoose = require('mongoose'),
-   bodyParser = require('body-parser'),
+    mongoose = require('mongoose'),
+    bodyParser = require('body-parser'),
     ejs      = require('ejs')
 
-    // Mongoose Schema definition
-    Schema = new mongoose.Schema({
-            firstName    : String,
-                bookName : String,
-                    authorName : String,
-                        bookStatus :String,
-                            contactNo :String,
-                                    email :String
-    }),         
 
-    User = mongoose.model('User', Schema);
+Schema = new mongoose.Schema({
+    bookName : String,
+    author : String,
+    course:String,
+    edition:String,
+    createdOn: Date
+}),
 
-    mongoose.connect('mongodb://rajan78:Rajan7895@ds013574.mlab.com:13574/rajan_niet_db');
+Book = mongoose.model('Book', Schema);
 
-    var app = express()
-    
-    app.use(bodyParser.json()); // get information from html forms
-    app.use(bodyParser.urlencoded({extended: true}));
- 
+mongoose.connect('mongodb://project:project@ds013574.mlab.com:13574/rajan_niet_db');
 
-  app.get('/api', function (req, res) {
+
+var app = express()
+
+app.use(bodyParser.json()); // get information from html forms
+app.use(bodyParser.urlencoded({extended: true}));
+app.use('/public', express.static(__dirname + '/public'));
+
+app.get('/api', function (req, res) {
     res.json(200, {msg: 'OK' });
-  })
+})
 
-app.get('/', function (req, res) {
+app.get('/blogs', function (req, res) {
     // http://mongoosejs.com/docs/api.html#query_Query-find
-    User.find({}, function ( err, users ){
-        if(!err && users){
-            res.render('users.ejs',{
-                data :  users
+    Blog.find({}, function ( err, blogs ){
+        if(!err && blogs){
+            res.render('blogs.ejs',{
+                data :  blogs
             })
         } else {
             console.log(err)
         }
     });
-
-});
-app.get('/adduser',function(req,res){
-    res.render('addUser.ejs')
 });
 
-  app.post('/api/adduser', function (req, res) {
-        var user = new User(
-        {
-            firstName : req.body.firstName,
-            bookName : req.body.bookName,
-            authorName : req.body.authorName,
-            bookStatus : req.body.bookStatus,
-            contactNo :req.body.contactNo,
-            email :req.body.email
-        
-        }
-    
-  
-    // http://mongoosejs.com/docs/api.html#model_Model-save
-    user.save(function (err, data) {
-        if(!err && data){
-            console.log('Success');
-            res.redirect('/')
+app.get('/admin', function (req, res) {
+    // http://mongoosejs.com/docs/api.html#query_Query-find
+    Book.find({}, function ( err, book ){
+        if(!err && book){
+            res.render('admin.ejs',{
+                data : book
+            })
         } else {
             console.log(err)
         }
-      
     });
-  });
-
-
-app.get('/adduser',function(req,res){
-    res.render('addUser.ejs')
 });
 
-  app.delete('/api/users', function (req, res) {
+
+app.get('/addblog', function(req, res){
+    res.render('addPost.ejs')
+})
+
+app.get('/', function(req, res){
+   Book.find({}).limit(3).exec(function(err, book){
+        if(!err && book){
+            res.render('index.ejs',{
+                data :  book
+            })
+        } else{
+            console.log(err);
+            res.status(500).send("something went wrong while fetching blog summary");
+        }
+    })
+})
+
+app.post('/api/addBlog', function (req, res) {
+    var book = new Book(
+        {
+            bookName : req.body.bookName,
+            author : req.body.author,
+            course : req.body.course,
+            edition: req.body.edition,
+            createdOn : Date.now()
+        }
+    );
+
+    // http://mongoosejs.com/docs/api.html#model_Model-save
+    blog.save(function (err, data) {
+        if(!err && data){
+            console.log('Data added successfully');
+            res.redirect('/blogs')
+        } else {
+            res.json(500, {msg: 'Something went wrong' });
+            console.log(err)
+        }
+
+    });
+})
+
+app.get('/api/blogs', function (req, res) {
     // http://mongoosejs.com/docs/api.html#query_Query-remove
-    User.remove({ isPassedOut: true }, function ( err ) {
+    User.remove({ category: 'music' }, function ( err ) {
         if(!err){
             console.log("User deleted successfully")
         } else{
             console.log(err)
         }
     });
-  })
+})
 
-  app.get('/userdetails/:id', function (req, res) {
-    // http://mongoosejs.com/docs/api.html#model_Model.findById
-    User.findById( req.params.id, function ( err, user ) {
-        if(!err && user){
-            res.render('userDetail.ejs',{
-                data:user
+app.get('/blog/:id', function(req, res){
+   Book.findById( req.params.id, function ( err, book ) {
+        if(!err && book){
+            res.render('blogDetail.ejs',{
+                data : book
             })
         } else {
             console.log(err)
         }
     });
-  })
+} )
 
-  app.put('/api/users/:id', function (req, res) {
-    // http://mongoosejs.com/docs/api.html#model_Model.findById
-    User.findById( req.params.id, function ( err, user ) {
-      user.isPassedOut = req.body.completed;
-      // http://mongoosejs.com/docs/api.html#model_Model-save
-      user.save( function ( err, data ){
-          if(!err && data){
-           res.status(200).json(data)
-          } else {
-              console.log(err)
-          }
-       
-      });
+app.get('/editBlog/:id', function(req, res){
+    Book.findById( req.params.id, function ( err, book ) {
+        if(!err && book){
+            res.render('editPost.ejs',{
+                data : book
+            })
+        } else {
+            console.log(err)
+        }
     });
-  });
 
-  app.delete('/api/users/:id', function (req, res) {
+})
+
+app.post('/api/editBlog/:id', function (req, res) {
     // http://mongoosejs.com/docs/api.html#model_Model.findById
-    User.findById( req.params.id, function ( err, user ) {
-      // http://mongoosejs.com/docs/api.html#model_Model.remove
-      user.remove( function ( err ){
-           res.status(200, {msg: 'User deleted'})
-      });
+    Book.findById( req.params.id, function ( err, book ) {
+            book.bookName = req.body.bookName,
+            book.author = req.body.author,
+            book.category = req.body.category,
+            book.edition  = req.body.edition,
+    // http://mongoosejs.com/docs/api.html#model_Model-save
+        book.save( function ( err, data ){
+            if(!err && data){
+                res.redirect('/blogs')
+            } else {
+                console.log(err)
+            }
+
+        });
     });
-  })
+});
+
+app.get('/api/deleteBlog/:id', function (req, res) {
+    // http://mongoosejs.com/docs/api.html#model_Model.findById
+   Book.findById( req.params.id, function ( err, blog ) {
+        // http://mongoosejs.com/docs/api.html#model_Model.remove
+       book.remove( function ( err ){
+           console.log("Blog deleted successfully")
+            res.redirect('/admin')
+        });
+    });
+});
 
 app.listen(1338);
 console.log('Magic happens on port 1338');
